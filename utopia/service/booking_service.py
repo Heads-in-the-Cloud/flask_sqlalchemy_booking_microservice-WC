@@ -38,18 +38,21 @@ class BookingService:
 
         booking = session.query(Booking).filter_by(id=id).first()
         flight = session.query(Flight).filter_by(id=1).first()
-        
         print('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFf')
         print('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFf')
         print('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFf')
         print('FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFf')
         print(FlightSchema().dump(flight))
-        print(FLIGHT_BOOKINGS_SCHEMA.dump(flight.flight_bookings))
-        # print(FLIGHT_BOOKINGS_SCHEMA.dump(booking.flight_bookings))
-        print(flight.flight_bookings.booking)
+        print(FLIGHT_BOOKINGS_SCHEMA_MANY.dump(flight.flight_bookings))
+        #print(flight.flight_bookings.booking)
+        print(FLIGHT_BOOKINGS_SCHEMA.dump(booking.flight_bookings))
+
+        #print(BOOKING_SCHEMA.dump(flight.flight_bookings.booking))
         # flight_bookings = session.query(FlightBookings).filter_by(flight_id=booking.flight_bookings.flight_id).first()
         # print(FlightSchema().dump(flight_bookings.flight))
         # print(BOOKING_SCHEMA.dump(flight_bookings.booking))
+
+        session.commit()
         print(FlightSchema().dump(booking.flight_bookings.flight))
         print(FlightSchema().dump(booking.flight_bookings.flight))
         print(ROUTE_SCHEMA.dump(booking.flight_bookings.flight.route))

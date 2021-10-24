@@ -16,7 +16,7 @@ class FlightBookings(Base):
     __tablename__ = 'flight_bookings'
 
     booking_id = Column(Integer, ForeignKey('booking.id'), primary_key=True)
-    flight_id = Column(Integer, ForeignKey('flight.id'))
+    flight_id = Column(Integer, ForeignKey('flight.id'), primary_key=True)
 
 
 class Booking(Base):
