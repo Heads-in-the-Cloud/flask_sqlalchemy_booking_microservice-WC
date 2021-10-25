@@ -9,6 +9,7 @@ from sqlalchemy.sql.sqltypes import Float
 from utopia import app
 from utopia.models.base import Base, Session
 
+
 ma = Marshmallow(app)
 
 
@@ -73,12 +74,18 @@ class Airplane(Base):
     type_id = Column(Integer, ForeignKey(AirplaneType.id))
     flights = relationship("Flight", lazy='subquery', cascade='all, delete', backref='airplane')
 
+class FlightBookings(Base):
+    __tablename__ = 'flight_bookings'
 
+    booking_id = Column(Integer, ForeignKey('booking.id'), primary_key=True)
+    flight_id = Column(Integer, ForeignKey('flight.id'), primary_key=True)
 
 
 
 
 ######################################## SCHEMAS ########################################
+
+
 
    
 class AirportSchema(ma.SQLAlchemyAutoSchema):
@@ -116,9 +123,16 @@ class AirplaneSchema(ma.SQLAlchemyAutoSchema):
 class FlightSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         Base = Flight
-        fields = ("id", "route_id", "airplane_id", "departure_time", "reserved_seats", "seat_price")
+        fields = ("id", "route_id", "route", "airplane_id", "departure_time", "reserved_seats", "seat_price")
         ordered = True
+    route = fields.Nested(RouteSchema, only = ['origin_id', 'destination_id'])
 
+
+class FlightBookingsSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = FlightBookings
+        fields = ('booking_id', 'flight_id', 'flight')
+    flight = fields.Nested(FlightSchema, exclude=['id', 'route_id'])
 
 AIRPORT_SCHEMA = AirportSchema()
 ROUTE_SCHEMA = RouteSchema()

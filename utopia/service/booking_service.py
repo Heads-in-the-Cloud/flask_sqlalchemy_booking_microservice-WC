@@ -1,8 +1,11 @@
 from flask import Flask, app, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from utopia.models.models import BOOKING_AGENT_SCHEMA, BOOKING_GUEST_SCHEMA, BOOKING_USER_SCHEMA, USER_SCHEMA, Booking, BookingAgent, BookingGuest, BookingPayment, BookingUser, Passenger, FlightBookings, BOOKING_SCHEMA, BOOKING_SCHEMA_MANY, PASSENGER_SCHEMA, PASSENGER_SCHEMA_MANY, FLIGHT_BOOKINGS_SCHEMA, FLIGHT_BOOKINGS_SCHEMA_MANY, BOOKING_PAYMENT_SCHEMA, User
-BOOKING_AGENT_SCHEMA, BOOKING_USER_SCHEMA, BookingPayment, BookingUser, BookingAgent, BookingGuest
-from utopia.models.flight_models import FLIGHT_SCHEMA, Flight, Route, Airport, FlightSchema, FLIGHT_SCHEMA_MANY, ROUTE_SCHEMA, ROUTE_SCHEMA_MANY, AIRPORT_SCHEMA, AIRPORT_SCHEMA_MANY
+
+from utopia.models.flights import FLIGHT_SCHEMA, Flight, Route, Airport, FlightSchema, FLIGHT_SCHEMA_MANY, ROUTE_SCHEMA, ROUTE_SCHEMA_MANY, AIRPORT_SCHEMA, AIRPORT_SCHEMA_MANY,FlightBookings
+
+from utopia.models.booking import BOOKING_SCHEMA_FULL, BOOKING_SCHEMA_FULL_MANY,  Booking, BookingPayment, BookingSchemaFull, Passenger, BOOKING_SCHEMA, BOOKING_SCHEMA_MANY, PASSENGER_SCHEMA, PASSENGER_SCHEMA_MANY, FLIGHT_BOOKINGS_SCHEMA, FLIGHT_BOOKINGS_SCHEMA_MANY, BOOKING_PAYMENT_SCHEMA
+
+from utopia.models.users import BookingUser, BookingAgent, BookingGuest, BOOKING_GUEST_SCHEMA, USER_SCHEMA, BOOKING_AGENT_SCHEMA, User, BOOKING_USER_SCHEMA, BOOKING_AGENT_SCHEMA,BOOKING_USER_SCHEMA
 
 from utopia.models.base import Session
 
@@ -32,30 +35,15 @@ class BookingService:
         session = Session()
         bookings = session.query(Booking).all()
 
-        return jsonify({'bookings': BOOKING_SCHEMA_MANY.dump(bookings)})
+        return jsonify({'bookings': BOOKING_SCHEMA_FULL_MANY.dump(bookings)})
     
     def find_booking(self, id):
         logging.info('finding booking with id %s ' %id)
         session = Session()
 
         booking = session.query(Booking).filter_by(id=id).first()
-        bp = booking.booking_payment
-        fb = booking.flight_bookings
-        f = fb.flight
-        r = f.route
-        ba = booking.booking_agent
-        bu = booking.booking_user
-        bg = booking.booking_guest
-        user = ba.user
-        print(BOOKING_PAYMENT_SCHEMA.dump(bp))
-        print(FLIGHT_BOOKINGS_SCHEMA.dump(fb))
-        print(FLIGHT_SCHEMA.dump(f))
-        print(ROUTE_SCHEMA.dump(r))
-        print(BOOKING_AGENT_SCHEMA.dump(ba))
-        print(BOOKING_USER_SCHEMA.dump(bu))
-        print(BOOKING_GUEST_SCHEMA.dump(bg))
-        print(USER_SCHEMA.dump(user))
-        return BOOKING_SCHEMA.dump(booking)
+        
+        return BOOKING_SCHEMA_FULL.dump(booking)
 
     def read_passengers(self):
         logging.info('reading all passengers')
@@ -98,20 +86,24 @@ class BookingService:
         session.flush()
 
         logging.info('flush booking, booking id is now %d' %booking_to_add.id)
-
+        booking_schema = BookingSchemaFull
         if user_id == 'guest':
             logging.info('creating a guest booking')
+            
             booking_to_add.booking_guest = BookingGuest(booking_id= booking_to_add.id, contact_email = 
-            booking['contact_email'], contact_phone = booking['contact_phone'])
+            booking['booking_guest']['contact_email'], contact_phone = booking['booking_guest']['contact_phone'])
+            booking_schema = BookingSchemaFull(exclude=['booking_agent', 'booking_user'])
         else:
             user = session.query(User).get(user_id)
             if user.user_role.id == TRAVELER:
                 logging.info('creating a user booking')
                 booking_to_add.booking_user = BookingUser(booking_id = booking_to_add.id, user_id = user.id)
+                booking_schema = BookingSchemaFull(exclude=['booking_guest', 'booking_agent'])
             else:
                 logging.info('creating an agent booking')
                 booking_to_add.booking_agent = BookingAgent(booking_id=booking_to_add.id, agent_id = user.id)
-        
+                booking_schema = BookingSchemaFull(exclude=['booking_guest', 'booking_user'])
+
         
         
         logging.info('finding flight %s' %flight_id)
@@ -127,7 +119,8 @@ class BookingService:
                 booking_to_add.passengers.append(Passenger(**passenger))
         
         session.commit()
-        booking =  BOOKING_SCHEMA.dump(booking_to_add)
+        booking =  booking_schema.dump(booking_to_add)
+
         session.close()
 
         return booking
