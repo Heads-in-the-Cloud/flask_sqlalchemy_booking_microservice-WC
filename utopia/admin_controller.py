@@ -38,10 +38,15 @@ def findPassenger(id):
 
 
 
-@app.route('/booking/public/add/booking', methods=['GET'])
+@app.route('/booking/public/add/booking', methods=['POST'])
 def addBookingEmpty():
 
     return BOOKING_SERVICE.add_booking_empty()   
+
+@app.route('/booking/public/add/booking/flight=<flight_id>/user=<user_id>', methods=['POST'])
+def addBooking(flight_id, user_id):
+
+    return BOOKING_SERVICE.add_booking(request.json, flight_id, user_id)
 
 @app.route('/booking/public/add/passenger', methods=['POST'])
 def addPassenger():

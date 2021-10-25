@@ -24,12 +24,6 @@ def generate_f_id():
             break
     return i
 
-# class FlightBookings(Base):
-#     __tablename__ = 'flight_bookings'
-
-#     booking_id = Column(Integer, ForeignKey('booking.id'), primary_key=True)
-#     flight_id = Column(Integer, ForeignKey('flight.id'))
-
 
 class Flight(Base):
     __tablename__ = 'flight'
@@ -92,8 +86,7 @@ class AirportSchema(ma.SQLAlchemyAutoSchema):
         Base = Airport
         ordered = True
         fields = ('iata_id', 'city')
-    # iata_id = auto_field()
-    # city = auto_field()
+
 
 
 class RouteSchema(ma.SQLAlchemyAutoSchema):
@@ -101,9 +94,7 @@ class RouteSchema(ma.SQLAlchemyAutoSchema):
         Base = Route
         ordered = True
         fields = ('id', 'origin_id', 'destination_id')
-    # id = auto_field()
-    # origin_id = auto_field()
-    # destination_id = auto_field()
+
 
 
 class AirplaneTypeSchema(ma.SQLAlchemyAutoSchema):
@@ -111,8 +102,7 @@ class AirplaneTypeSchema(ma.SQLAlchemyAutoSchema):
         Base = AirplaneType
         ordered = True
         fields = ('id', 'max_capacity')
-    # id = auto_field()
-    # max_capacity = auto_field()
+
 
 
 class AirplaneSchema(ma.SQLAlchemyAutoSchema):
@@ -120,9 +110,6 @@ class AirplaneSchema(ma.SQLAlchemyAutoSchema):
         Base = Airplane
         fields = ('id', 'type_id')
         ordered = True
-
-    # id = auto_field()
-    # type_id = auto_field()
     airplane_type = fields.Nested(AirplaneTypeSchema(only=["max_capacity"],))
 
 
@@ -131,22 +118,6 @@ class FlightSchema(ma.SQLAlchemyAutoSchema):
         Base = Flight
         fields = ("id", "route_id", "airplane_id", "departure_time", "reserved_seats", "seat_price")
         ordered = True
-    # id = auto_field()
-    # route_id = auto_field()
-    # airplane_id = auto_field()
-    # departure_time = auto_field()
-    # reserved_seats = auto_field()
-    # seat_price  = auto_field()
-    # airplane = fields.Nested(AirplaneSchema(only=['id', 'airplane_type']))
-    # route = fields.Nested(RouteSchema())
-
-
-
-# class FlightBookingsSchema(ma.SQLAlchemyAutoSchema):
-#     class Meta:
-#         Base = FlightBookings
-#     booking_id = auto_field()
-#     flight_id = auto_field()
 
 
 AIRPORT_SCHEMA = AirportSchema()
