@@ -5,10 +5,8 @@ from sqlalchemy.orm import backref, relation, relationship
 from flask_marshmallow import Marshmallow
 from marshmallow_sqlalchemy import SQLAlchemySchema, auto_field
 from marshmallow import Schema, fields
-# from utopia.models.flight_models import Flight
 from utopia import app
 from utopia.models.base import Base
-# from utopia.models.flights import FlightSchema
 
 
 

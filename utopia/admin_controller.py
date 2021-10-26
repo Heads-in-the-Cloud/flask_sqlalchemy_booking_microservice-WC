@@ -61,6 +61,43 @@ def addPassengers():
 
 
 
+##################### PUT #####################
+
+@app.route('/booking/public/update/passenger', methods=['PUT'])
+def updatePassenger():
+
+    return BOOKING_SERVICE.update_passenger(request.json)  
+
+
+@app.route('/booking/public/update/passengers', methods=['PUT'])
+def updateBookingPassengers():
+
+    return BOOKING_SERVICE.update_booking_passengers(request.json)  
+
+@app.route('/booking/public/update/booking', methods=['PUT'])
+def updateBookingAgent():
+
+    return BOOKING_SERVICE.update_booking_method(request.json)  
+
+
+@app.route('/booking/public/update/is_active', methods=['PUT'])
+def updateIsActive():
+
+    return BOOKING_SERVICE.set_is_active(request.json)
+
+
+@app.route('/booking/public/update/booking_payment', methods=['PUT'])
+def updateBookingPayment():
+
+    return BOOKING_SERVICE.update_booking_payment(request.json)
+
+@app.route('/booking/public/update/flight_bookings', methods=['PUT'])
+def updateFlightBookings():
+
+    return BOOKING_SERVICE.update_flight_bookings(request.json)
+  
+
+
 ##################### DELETE #####################
 
 @app.route('/booking/public/delete/booking/id=<id>', methods=['DELETE'])
@@ -72,3 +109,18 @@ def deleteBooking(id):
 def deletePassenger(id):
 
     return BOOKING_SERVICE.delete_passenger(id)  
+
+@app.route('/booking/public/delete/booking_agent/id=<id>', methods=['DELETE'])
+def deleteBookingAgent(id):
+
+    return BOOKING_SERVICE.delete_booking_agent(id)  
+
+@app.route('/booking/public/delete/booking_user/id=<id>', methods=['DELETE'])
+def deleteBookingUser(id):
+
+    return BOOKING_SERVICE.delete_booking_user(id)  
+
+@app.route('/booking/public/delete/booking_guest/id=<id>', methods=['DELETE'])
+def deleteBookingGuest(id):
+
+    return BOOKING_SERVICE.delete_booking_guest(id) 

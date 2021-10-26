@@ -20,4 +20,4 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root@localhost/utopia'
 
 
 
-from utopia import admin_controller
+from utopia import admin_controller, error_handler

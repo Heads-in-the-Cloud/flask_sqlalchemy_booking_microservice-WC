@@ -56,6 +56,8 @@ class Route(Base):
     destination_id = Column(String(3) , ForeignKey("airport.iata_id"))
     origin_id =  Column(String(3) , ForeignKey("airport.iata_id"))
     flights = relationship('Flight', backref='route', lazy='subquery', cascade='all, delete')
+    origin_airport = relationship("Airport", lazy='subquery', primaryjoin="Airport.iata_id == Route.origin_id")
+    destination_airport = relationship("Airport", lazy='subquery', primaryjoin="Airport.iata_id == Route.destination_id")
 
 
 class AirplaneType(Base):
@@ -78,7 +80,7 @@ class FlightBookings(Base):
     __tablename__ = 'flight_bookings'
 
     booking_id = Column(Integer, ForeignKey('booking.id'), primary_key=True)
-    flight_id = Column(Integer, ForeignKey('flight.id'), primary_key=True)
+    flight_id = Column(Integer, ForeignKey('flight.id'))
 
 
 
@@ -100,8 +102,9 @@ class RouteSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         Base = Route
         ordered = True
-        fields = ('id', 'origin_id', 'destination_id')
-
+        fields = ('id', 'origin_id', 'destination_id', 'origin_airport', 'destination_airport')
+    origin_airport = fields.Nested(AirportSchema, only=['city'])
+    destination_airport = fields.Nested(AirportSchema, only=['city'])
 
 
 class AirplaneTypeSchema(ma.SQLAlchemyAutoSchema):
