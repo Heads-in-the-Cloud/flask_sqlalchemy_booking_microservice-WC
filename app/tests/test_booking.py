@@ -1,17 +1,20 @@
 import unittest
 from flask import Flask, json, jsonify
+from utopia.models.flights import Flight
+from utopia.models.users import User
+
 
 from utopia import app
-from utopia.service.booking_service import TRAVELER, BookingService
+from utopia.booking_service import BookingService
 import random
 from sqlalchemy.exc import IntegrityError, OperationalError
-
+from utopia.models.base import db_session
 BOOKING_SERVICE = BookingService()
 
 
-FLIGHT_ID = 1
-AGENT_ID=1
-USER_ID = 33
+ADMIN = 1
+AGENT=2
+TRAVELER = 3
 GUEST = 'guest'
 
 def setup_booking_empty():
@@ -36,6 +39,18 @@ def teardown_passenger(id):
 
     BOOKING_SERVICE.delete_passenger(id)
 
+def get_user(role_id):
+    user = db_session.query(User).filter_by(role_id=role_id).first()
+    id = user.id
+    db_session.close()
+    return id
+
+def get_flight():
+    flight = db_session.query(Flight).first()
+    flight_id = flight.id
+    db_session.close()
+    return flight_id
+
 class TestBooking(unittest.TestCase):
 
     def test_add_booking(self):
@@ -43,7 +58,7 @@ class TestBooking(unittest.TestCase):
 
             booking_count = len(BOOKING_SERVICE.read_bookings().json['bookings'])
 
-            booking = setup_booking_empty()
+            booking = setup_booking({}, get_flight(), get_user(AGENT) )
             self.assertEqual(booking_count+1, len(BOOKING_SERVICE.read_bookings().json['bookings']))
 
             teardown_booking(booking['id'])
@@ -53,7 +68,7 @@ class TestBooking(unittest.TestCase):
 
             booking_count = len(BOOKING_SERVICE.read_bookings().json['bookings'])
 
-            booking = setup_booking_empty()
+            booking = setup_booking({}, get_flight(), get_user(AGENT))
             passenger = setup_passenger(booking['id'])
             passenger = BOOKING_SERVICE.add_passenger(passenger) 
 
@@ -75,10 +90,13 @@ class TestBooking(unittest.TestCase):
             passengers = [ setup_passenger(None) for x in range(10)]
             booking = {'passengers' : passengers}
 
-            booking = setup_booking(booking, FLIGHT_ID, AGENT_ID)
+            flight_id = get_flight()
+            user_id = get_user(AGENT)
+
+            booking = setup_booking(booking, flight_id, user_id)
             
-            self.assertEqual(booking['flight_bookings']['flight_id'], FLIGHT_ID)
-            self.assertEqual(booking['booking_agent']['agent_id'], AGENT_ID)
+            self.assertEqual(booking['flight_bookings']['flight_id'], flight_id)
+            self.assertEqual(booking['booking_agent']['agent_id'], user_id)
             
             for p_original, p_added in zip(passengers, booking['passengers']):
                 self.assertEqual(p_original['given_name'], p_added['given_name'])
@@ -94,10 +112,14 @@ class TestBooking(unittest.TestCase):
 
             passengers = [ setup_passenger(None) for x in range(10)]
             booking = {'passengers' : passengers}
-            booking = setup_booking(booking, FLIGHT_ID, USER_ID)
+            flight_id = get_flight()
+            user_id = get_user(TRAVELER)
+
+
+            booking = setup_booking(booking, flight_id, user_id)
             
-            self.assertEqual(booking['flight_bookings']['flight_id'], FLIGHT_ID)
-            self.assertEqual(booking['booking_user']['user_id'], USER_ID)
+            self.assertEqual(booking['flight_bookings']['flight_id'], flight_id)
+            self.assertEqual(booking['booking_user']['user_id'], user_id)
             
             for p_original, p_added in zip(passengers, booking['passengers']):
                 self.assertEqual(p_original['given_name'], p_added['given_name'])
@@ -116,9 +138,12 @@ class TestBooking(unittest.TestCase):
             booking = {'passengers' : passengers}
             booking_guest = {'contact_email' : 'jdoe@gmail.com', 'contact_phone' : '555 555 5555'}
             booking['booking_guest'] = booking_guest
-            booking = setup_booking(booking, FLIGHT_ID, GUEST)
+
+            flight_id = get_flight()
+
+            booking = setup_booking(booking, flight_id, GUEST)
             
-            self.assertEqual(booking['flight_bookings']['flight_id'], FLIGHT_ID)
+            self.assertEqual(booking['flight_bookings']['flight_id'], flight_id)
             self.assertEqual(booking['booking_guest']['contact_email'], booking_guest['contact_email'])
             self.assertEqual(booking['booking_guest']['contact_phone'], booking_guest['contact_phone'])
          
@@ -138,9 +163,12 @@ class TestBooking(unittest.TestCase):
             booking = {}
             booking_guest = {'contact_email' : 'jdoe@gmail.com', 'contact_phone' : '555 555 5555'}
             booking['booking_guest'] = booking_guest
-            booking = setup_booking(booking, FLIGHT_ID, GUEST)
+
+            flight_id = get_flight()
+
+            booking = setup_booking(booking, flight_id, GUEST)
             
-            self.assertEqual(booking['flight_bookings']['flight_id'], FLIGHT_ID)
+            self.assertEqual(booking['flight_bookings']['flight_id'], flight_id)
             self.assertEqual(booking['booking_guest']['contact_email'], booking_guest['contact_email'])
             self.assertEqual(booking['booking_guest']['contact_phone'], booking_guest['contact_phone'])
             self.assertEqual(booking['passengers'], [])
@@ -153,43 +181,43 @@ class TestBooking(unittest.TestCase):
             passengers = [ setup_passenger(None) for x in range(10)]
             booking = {'passengers' : passengers}
 
-            self.assertRaises(AttributeError, setup_booking, booking, 0, AGENT_ID)
-            self.assertRaises(AttributeError, setup_booking, booking, None, AGENT_ID)
+            self.assertRaises(AttributeError, setup_booking, booking, 0, get_user(AGENT))
+            self.assertRaises(AttributeError, setup_booking, booking, None, get_user(AGENT))
 
     def test_booking_wrong_user(self):
             with app.app_context():
                 passengers = [ setup_passenger(None) for x in range(10)]
                 booking = {'passengers' : passengers}
 
-                self.assertRaises(AttributeError, setup_booking, booking, FLIGHT_ID, 0)
-                self.assertRaises(AttributeError, setup_booking, booking, FLIGHT_ID, None)
+                self.assertRaises(AttributeError, setup_booking, booking, get_flight(), 0)
+                self.assertRaises(AttributeError, setup_booking, booking, get_flight(), None)
 
     def test_booking_wrong_guest(self):
             with app.app_context():
                 passengers = [ setup_passenger(None) for x in range(10)]
                 booking = {'passengers' : passengers}
 
-                self.assertRaises(KeyError, setup_booking, booking, FLIGHT_ID, GUEST)
+                self.assertRaises(KeyError, setup_booking, booking, get_flight(), GUEST)
 
                 booking['booking_guest'] = {'not_contact_email':'jdoe@gmail.com', 'contact_phone' : '555 555 5555'}
 
-                self.assertRaises(KeyError, setup_booking, booking, FLIGHT_ID, GUEST)
+                self.assertRaises(KeyError, setup_booking, booking, get_flight(), GUEST)
 
-    def test_booking_bad_passengers(self):
-            with app.app_context():
-                passengers = [ setup_passenger(None) for x in range(10)]
-                for passenger in passengers:
-                    passenger['given_name'] = None
-                booking = {'passengers' : passengers}
+    # def test_booking_bad_passengers(self):
+    #         with app.app_context():
+    #             passengers = [ setup_passenger(None) for x in range(10)]
+    #             for passenger in passengers:
+    #                 passenger['given_name'] = None
+    #             booking = {'passengers' : passengers}
 
-                self.assertRaises(OperationalError, setup_booking, booking, FLIGHT_ID, AGENT_ID)
+    #             self.assertRaises(OperationalError, setup_booking, booking, get_flight(), get_user(AGENT))
 
     def test_booking_passengers_with_id(self):
                 with app.app_context():
                     passengers = [ setup_passenger(-1) for x in range(10)]
                     booking = {'passengers' : passengers}
 
-                    booking = setup_booking(booking, FLIGHT_ID, AGENT_ID)
+                    booking = setup_booking(booking, get_flight(), get_user(AGENT))
                     teardown_booking(booking['id'])
 
     def test_booking_passengers_missing_field(self):
@@ -199,14 +227,17 @@ class TestBooking(unittest.TestCase):
     'gender' : 'male', 'address' : '123 Glendora avenue, Plymouth PA'})
                     booking = {'passengers' : passengers}
 
-                    self.assertRaises(OperationalError, setup_booking, booking, FLIGHT_ID, AGENT_ID)
+                    self.assertRaises(KeyError, setup_booking, booking, get_flight(), get_user(AGENT))
 
     def test_update_booking_passengers(self):
                 with app.app_context():
                         passengers = [ setup_passenger(None) for x in range(10)]
                         booking = {'passengers' : passengers}
 
-                        booking = setup_booking(booking, FLIGHT_ID, AGENT_ID)
+                        flight_id = get_flight()
+                        user_id = get_user(AGENT)
+
+                        booking = setup_booking(booking, flight_id, user_id)
 
                         passengers = [{'booking_id': -1, 'given_name':'Jane', 'family_name' : 'Austen', 'dob':'1998-12-31',
                                         'gender' : 'female', 'address' : '123 Glendora avenue, Chino Hills'}]
@@ -218,7 +249,7 @@ class TestBooking(unittest.TestCase):
                         self.assertEqual(p_original['given_name'], p_added['given_name'])
                         self.assertEqual(p_original['family_name'], p_added['family_name'])
                         self.assertEqual(p_original['address'], p_added['address'])
-                        self.assertEqual(p_original['dob'], p_added['dob'])
+                        self.assertEqual(p_original['dob'].strftime("%Y-%m-%d"), p_added['dob'])
                         self.assertEqual(p_original['gender'], p_added['gender'])
                         teardown_booking(updated_booking['id'])
         
@@ -229,7 +260,8 @@ class TestBooking(unittest.TestCase):
                                         'gender' : 'female', 'address' : '123 Glendora avenue, Chino Hills'}
                 booking = {'passengers' : [passenger]}
 
-                passenger = setup_booking(booking, FLIGHT_ID, USER_ID)['passengers'][0]
+                
+                passenger = setup_booking(booking, get_flight(), get_user(3))['passengers'][0]
                 update_passenger = {'id': passenger['id'], 'given_name':'Jane', 'family_name' : 'Austen',
                                         'address' : '123 Glendora avenue, Chino Hills'}
                 BOOKING_SERVICE.update_passenger(update_passenger)
@@ -249,13 +281,17 @@ class TestBooking(unittest.TestCase):
         with app.app_context():
 
             booking = {}
-            booking = setup_booking(booking,FLIGHT_ID, AGENT_ID)
 
-            booking['booking_user']  = {'user_id' : USER_ID}  
+            admin = get_user(ADMIN)
+            agent = get_user(AGENT)
+            traveler = get_user(TRAVELER)
+            booking = setup_booking(booking,get_flight(), agent)
+
+            booking['booking_user']  = {'user_id' : traveler}  
             booking['booking_agent'] = None      
             booking = BOOKING_SERVICE.update_booking_method(booking)
             self.assertEqual(booking['booking_agent'], None)
-            self.assertEqual(booking['booking_user']['user_id'],USER_ID)
+            self.assertEqual(booking['booking_user']['user_id'], traveler)
 
             booking_guest = {'contact_email': 'jdoe@gmail.com', 'contact_phone':'555 555 5555'}
             booking['booking_guest'] = booking_guest      
@@ -268,22 +304,15 @@ class TestBooking(unittest.TestCase):
            
       
             booking['booking_guest'] = None
-            booking['booking_agent'] = {'agent_id' : AGENT_ID}
+            booking['booking_agent'] = {'agent_id' : agent}
             booking = BOOKING_SERVICE.update_booking_method(booking)
             self.assertEqual(booking['booking_user'], None)
             self.assertEqual(booking['booking_guest'], None)
-            self.assertEqual(booking['booking_agent']['agent_id'],AGENT_ID)
+            self.assertEqual(booking['booking_agent']['agent_id'], agent)
 
             teardown_booking(booking['id'])
 
-    # def test_booking_type_incorrect(self):
-    #     with app.app_context():
-
-    #         booking = {}
-    #         booking = setup_booking(booking,FLIGHT_ID, AGENT_ID)
-    #         self.assertRaises( KeyError, BOOKING_SERVICE.update_booking_method, booking)
-    #         teardown_booking(booking['id'])
-
+   
     def test_booking_type_wrong_id(self):
             with app.app_context():
                 booking = {'id':0}
@@ -291,15 +320,20 @@ class TestBooking(unittest.TestCase):
                 self.assertRaises( AttributeError, BOOKING_SERVICE.update_booking_method, booking)
 
     
-    # def test_booking_type_wrong_fk(self):
-    #         with app.app_context():
-                
-    #             booking = setup_booking({}, FLIGHT_ID, AGENT_ID)
-    #             booking['booking_agent'] = {'agent_id' : USER_ID}
-    #             self.assertRaises(IntegrityError, BOOKING_SERVICE.update_booking_method, booking)
-    #             teardown_booking(booking['id'])
 
-          
+
+
+    def test_booking_type_wrong_fk(self):
+            with app.app_context():
+                
+                agent_id = get_user(AGENT)
+                traveler_id = get_user(TRAVELER)
+                booking = setup_booking({}, get_flight(), agent_id)
+                booking['booking_agent'] = {'agent_id' : traveler_id}
+                self.assertRaises(IntegrityError, BOOKING_SERVICE.update_booking_method, booking)
+                teardown_booking(booking['id'])
+
+        
 
 
 

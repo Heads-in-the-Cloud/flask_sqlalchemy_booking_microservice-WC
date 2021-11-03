@@ -1,14 +1,14 @@
-from enum import auto
-from flask import Flask
-from marshmallow.decorators import post_dump, pre_dump
-from sqlalchemy import Column, Integer, String, Boolean, Sequence, ForeignKey, ForeignKeyConstraint
-from sqlalchemy.orm import backref, relation, relationship
+from flask import Flask, request
+from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
-from marshmallow_sqlalchemy import SQLAlchemySchema, auto_field
 from marshmallow import Schema, fields
-from sqlalchemy.sql.sqltypes import Date
+from marshmallow_sqlalchemy import SQLAlchemySchema, auto_field
+from sqlalchemy.sql.sqltypes import Boolean, Date
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, ForeignKeyConstraint
+from sqlalchemy.orm import backref, relation, relationship
 from utopia import app
 from utopia.models.base import Base
+
 
 from utopia.models.users import BookingAgentSchema, BookingGuestSchema, BookingUserSchema
 from utopia.models.flights import FlightSchema, FlightBookingsSchema
@@ -125,4 +125,3 @@ PASSENGER_SCHEMA_MANY = PassengerSchema(many=True)
 FLIGHT_BOOKINGS_SCHEMA_MANY = FlightBookingsSchema(many=True)
 BOOKING_PAYMENT_SCHEMA_MANY = BookingPaymentSchema(many=True)
 BOOKING_SCHEMA_FULL_MANY = BookingSchemaFull(many=True)
-

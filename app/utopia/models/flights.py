@@ -1,21 +1,20 @@
-from flask import Flask
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, ForeignKeyConstraint
-from sqlalchemy.orm import backref, relation, relationship
+from flask import Flask, request
+from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
-from marshmallow_sqlalchemy import SQLAlchemySchema, auto_field
 from marshmallow import Schema, fields
 from sqlalchemy.sql.sqltypes import Float
-
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, ForeignKeyConstraint
+from sqlalchemy.orm import backref, relation, relationship
 from utopia import app
-from utopia.models.base import Base, Session
+from utopia.models.base import Base, db_session
 
 
 ma = Marshmallow(app)
 
-
 def generate_f_id():
-    session = Session()
-    flight_ids = session.execute('SELECT id FROM flight')
+    
+
+    flight_ids = db_session.execute('SELECT id FROM flight')
     i=1
     for id in flight_ids:
         
@@ -23,6 +22,7 @@ def generate_f_id():
             i+=1
         else:
             break
+
     return i
 
 
@@ -56,8 +56,8 @@ class Route(Base):
     destination_id = Column(String(3) , ForeignKey("airport.iata_id"))
     origin_id =  Column(String(3) , ForeignKey("airport.iata_id"))
     flights = relationship('Flight', backref='route', lazy='subquery', cascade='all, delete')
-    origin_airport = relationship("Airport", lazy='subquery', primaryjoin="Airport.iata_id == Route.origin_id")
-    destination_airport = relationship("Airport", lazy='subquery', primaryjoin="Airport.iata_id == Route.destination_id")
+    origin_airport = relationship("Airport", primaryjoin="Airport.iata_id == Route.origin_id")
+    destination_airport = relationship("Airport", primaryjoin="Airport.iata_id == Route.destination_id")
 
 
 class AirplaneType(Base):
@@ -120,7 +120,7 @@ class AirplaneSchema(ma.SQLAlchemyAutoSchema):
         Base = Airplane
         fields = ('id', 'type_id')
         ordered = True
-    airplane_type = fields.Nested(AirplaneTypeSchema(only=["max_capacity"],))
+    airplane_type = fields.Nested(AirplaneTypeSchema, only=["max_capacity"])
 
 
 class FlightSchema(ma.SQLAlchemyAutoSchema):

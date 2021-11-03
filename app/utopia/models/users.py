@@ -1,13 +1,14 @@
-from enum import auto
-from flask import Flask
-from sqlalchemy import Column, Integer, String, Boolean, Sequence, ForeignKey, ForeignKeyConstraint
-from sqlalchemy.orm import backref, relation, relationship
+from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
-from marshmallow_sqlalchemy import SQLAlchemySchema, auto_field
 from marshmallow import Schema, fields
+from sqlalchemy.sql.sqltypes import Boolean, Date
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, ForeignKeyConstraint
+from sqlalchemy.orm import backref, relation, relationship
 from utopia import app
-from utopia.models.base import Base
-
+from utopia.models.base import Base, db_session
+from flask_jwt_extended import get_jwt, create_access_token, set_access_cookies, get_jwt_identity
+from datetime import datetime, timedelta, timezone
 
 
 ma = Marshmallow(app)
@@ -56,43 +57,62 @@ class BookingGuest(Base):
     contact_phone = Column(String(45))
 
 
+def find_user(username):
+    user = db_session.query(User).filter_by(username=username).first()
+
+    user = UserSchema().dump(user)
+    return user
+
+def refresh_token(response):
+    try:
+        exp_timestamp = get_jwt()["exp"]
+        now = datetime.now(timezone.utc)
+        target_timestamp = datetime.timestamp(now + timedelta(minutes=30))
+        if target_timestamp > exp_timestamp:
+            access_token = create_access_token(identity=get_jwt_identity())
+            set_access_cookies(response, access_token)
+        return response
+    except (RuntimeError, KeyError):
+
+        # Case where there is not a valid JWT. Just return the original respone
+        return response
+
+############################# SCHEMAS #############################
 
 
 class UserRoleSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = UserRole
         ordered = True
-    id = auto_field()
-    name = auto_field()
+        fields = ('id', 'name')
+
 
 
 class UserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = User
         ordered = True
-        fields = ('id', 'given_name', 'family_name', 'username', 'email', 'password', 'phone', 'user_role')
-    user_role = fields.Nested(UserRoleSchema)
+        fields = ('id', 'username', 'role_id', 'user_role', 'given_name', 'family_name',  'email', 'password', 'phone')
+    user_role = fields.Nested(UserRoleSchema, only=['name'])
+
 
 class BookingAgentSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = BookingAgent
-    booking_id = auto_field()
-    agent_id = auto_field()
+        fields = ('booking_id', 'agent_id', 'user')
     user = fields.Nested(UserSchema, only = ['username'])
 
 class BookingGuestSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = BookingGuest
-    booking_id = auto_field()
-    contact_email = auto_field()
-    contact_phone = auto_field()
+        fields = ('booking_id', 'contact_email', 'contact_phone')
+
 
 
 class BookingUserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = BookingUser
-    booking_id = auto_field()
-    user_id = auto_field()
+        fields = ('booking_id', 'user_id', 'user')
     user = fields.Nested(UserSchema, only = ['username'])
 
 

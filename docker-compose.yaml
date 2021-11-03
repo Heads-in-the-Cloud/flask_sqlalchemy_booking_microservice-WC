@@ -1,0 +1,21 @@
+version: "3"
+services:
+  app:
+    build: ./app
+    ports:
+      - "5002:5000"
+    depends_on:
+      - db
+    links:
+      - db
+
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PW}"
+    ports:
+      - '3309:3306'
+    volumes:
+      - my-db:/var/lib/mysql
+volumes:
+  my-db:

@@ -1,17 +1,24 @@
-from flask import Flask, json, request
+from flask import Flask, json, request, make_response
 from utopia import app
-from utopia.service.booking_service import BookingService
+from utopia.booking_service import BookingService
 import logging
+from utopia.models.users import find_user, refresh_token
+from flask_jwt_extended import get_current_user, JWTManager, jwt_required
 
 BOOKING_SERVICE = BookingService()
-
+jwt = JWTManager(app)
+TRAVELER = 3
 
 ##################### GET #####################
 
 
 
 @app.route('/booking/admin/read/bookings', methods=['GET'])
+@jwt_required()
 def readBookings():
+    current_user = get_current_user()
+    if current_user['role_id'] == TRAVELER:
+        return make_response('need at least agent privileges to access this resource', 403)
 
     return BOOKING_SERVICE.read_bookings()
 
@@ -75,7 +82,8 @@ def updateBookingPassengers():
     return BOOKING_SERVICE.update_booking_passengers(request.json)  
 
 @app.route('/booking/public/update/booking', methods=['PUT'])
-def updateBookingAgent():
+@jwt_required()
+def updateBookingMethod():
 
     return BOOKING_SERVICE.update_booking_method(request.json)  
 
@@ -124,3 +132,13 @@ def deleteBookingUser(id):
 def deleteBookingGuest(id):
 
     return BOOKING_SERVICE.delete_booking_guest(id) 
+
+
+@jwt.user_lookup_loader
+def user_lookup_callback(_jwt_header, jwt_data):
+    identity = jwt_data["sub"]
+    return find_user(identity)
+
+@app.after_request
+def refresh_expiring_jwts(response):
+    return refresh_token(response)
